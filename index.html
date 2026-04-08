@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cipher Visualizer</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .main {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* LEFT PANEL */
+        .left {
+            width: 30%;
+            background: #1e293b;
+            padding: 25px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
+
+        /* RIGHT PANEL */
+        .right {
+            width: 70%;
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        h2 {
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0 12px 0;
+            border-radius: 6px;
+            border: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        .info-box {
+            margin-top: 15px;
+            padding: 10px;
+            background: #334155;
+            border-radius: 6px;
+        }
+
+        /* STEP FLOW */
+        .step {
+            background: #1e293b;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .highlight {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .ascii {
+            color: #f87171;
+            font-size: 13px;
+        }
+
+        .arrow {
+            text-align: center;
+            margin: 5px 0;
+            color: #94a3b8;
+        }
+
+        .final-output {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #facc15;
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(5px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="main">
+
+    <!-- LEFT SIDE (FORM + RESULT) -->
+    <div class="left">
+        <h2>🔐 Cipher Input</h2>
+
+        <label>Plain Text</label>
+        <input id="text" placeholder="Enter text (HELLO)" />
+
+        <label>Key (Shift)</label>
+        <input id="shift" type="number" value="3" />
+
+        <button onclick="encrypt()">Encrypt</button>
+
+        <div id="info" class="info-box"></div>
+
+        <!-- ✅ Final Output now on LEFT -->
+        <div id="finalOutput" class="info-box final-output"></div>
+    </div>
+
+    <!-- RIGHT SIDE (VISUALIZATION ONLY) -->
+    <div class="right">
+        <h2>📊 Transformation Flow</h2>
+
+        <div id="steps"></div>
+    </div>
+
+</div>
+
+<script>
+    async function encrypt() {
+        const text = document.getElementById("text").value;
+        const shift = parseInt(document.getElementById("shift").value);
+
+        const res = await fetch("http://127.0.0.1:8000/encrypt", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ text, shift })
+        });
+
+        const data = await res.json();
+
+        const stepsDiv = document.getElementById("steps");
+        const outputDiv = document.getElementById("finalOutput");
+        const infoDiv = document.getElementById("info");
+
+        stepsDiv.innerHTML = "";
+        outputDiv.innerHTML = "";
+
+        // Info panel
+        infoDiv.innerHTML = `
+            <b>Plain Text:</b> ${data.input} <br>
+            <b>Key:</b> ${shift}
+        `;
+
+        // Steps with ASCII
+        data.steps.forEach((step, index) => {
+            setTimeout(() => {
+
+                const originalAscii = step.original.charCodeAt(0);
+                const shiftedAscii = step.shifted.charCodeAt(0);
+
+                const div = document.createElement("div");
+                div.className = "step";
+
+                div.innerHTML = `
+                    <div>
+                        ${step.original} 
+                        <span class="ascii">(ASCII: ${originalAscii})</span>
+                    </div>
+
+                    <div class="arrow">↓ shift +${shift}</div>
+
+                    <div>
+                        <span class="highlight">${step.shifted}</span> 
+                        <span class="ascii">(ASCII: ${shiftedAscii})</span>
+                    </div>
+                `;
+
+                stepsDiv.appendChild(div);
+
+            }, index * 400);
+        });
+
+        // ✅ Final output on LEFT
+        setTimeout(() => {
+            outputDiv.innerHTML = `
+                <div>Final Cipher Text</div>
+                <div style="font-size:22px; margin-top:5px;">${data.output}</div>
+            `;
+        }, data.steps.length * 400);
+    }
+</script>
+
+</body>
+</html>
